@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>探究を一歩進める問いを見つけよう</title>
+<style>
+:root{
+  --bg:#f5f4ef; --fg:#1f2328; --muted:#555b62; --card:#ffffff; --line:#d6d2c8; --soft:#eceae3;
+  --yes:#2e7d4f; --no:#b4532a; --unk:#8a6a12; --na:#6b7280; --onbadge:#ffffff;
+  --focus:#2b62c0;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#15171a; --fg:#e9e7e2; --muted:#aab0b7; --card:#1f2226; --line:#3b4047; --soft:#2a2e33;
+    --yes:#72c793; --no:#f29b72; --unk:#e2c25e; --na:#a0a7b0; --onbadge:#15171a;
+    --focus:#8fb5ff;
+  }
+}
+.c1{--c:#3b6ea8; --ct:#e8eef6}
+.c2{--c:#7357a3; --ct:#efeaf6}
+.c3{--c:#2b8273; --ct:#e4f2ef}
+.c4{--c:#b0701f; --ct:#f7eedf}
+.c5{--c:#b04a66; --ct:#f6e6eb}
+.c6{--c:#4b5563; --ct:#eceff2}
+@media (prefers-color-scheme: dark){
+  .c1{--c:#8fb5e3; --ct:#1c2734}
+  .c2{--c:#b9a2e3; --ct:#272135}
+  .c3{--c:#79cdbd; --ct:#172c28}
+  .c4{--c:#e6b06a; --ct:#30261a}
+  .c5{--c:#e898ad; --ct:#311d24}
+  .c6{--c:#b9c0c9; --ct:#262a30}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  font-size:16px; line-height:1.65; word-break:normal; overflow-wrap:anywhere;
+  padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
+}
+button,input,textarea{font:inherit; color:inherit}
+button{
+  min-height:44px; min-width:44px; border-radius:12px; border:2px solid var(--line);
+  background:var(--card); padding:8px 14px; cursor:pointer; touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent; line-height:1.4;
+}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.opt:focus-within{outline:3px solid var(--focus); outline-offset:2px}
+input[type=text],textarea{
+  width:100%; font-size:16px; border:2px solid var(--line); border-radius:10px; background:var(--card);
+  padding:10px 12px; min-height:48px;
+}
+textarea{min-height:88px; resize:vertical; line-height:1.6}
+label{display:block}
+h1,h2,h3{line-height:1.35; margin:0}
+p{margin:0}
+.wrap{max-width:820px; margin:0 auto; padding:16px 14px 32px}
+.muted{color:var(--muted)}
+.small{font-size:16px}
+.primary{background:var(--fg); color:var(--bg); border-color:var(--fg); font-weight:700}
+.ghost{background:transparent}
+.row{display:flex; flex-wrap:wrap; gap:10px}
+.row > *{flex:1 1 auto}
+.stack > * + *{margin-top:12px}
+.box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:16px}
+.box h2{font-size:20px; margin-bottom:10px}
+.field + .field{margin-top:12px}
+.field .lab{font-weight:700; margin-bottom:4px}
+.note{background:var(--soft); border-radius:12px; padding:10px 12px; margin-top:10px}
+.err{color:var(--no); font-weight:700; margin-top:10px}
+.hidden-el{display:none !important}
+
+/* start */
+.hero{padding:8px 2px 4px}
+.kicker{color:var(--muted); font-weight:700}
+.hero h1{font-size:28px; margin:4px 0 10px}
+.lead{background:var(--card); border-left:6px solid #2b8273; border-radius:10px; padding:12px 14px; font-weight:600}
+.modes{display:grid; grid-template-columns:1fr; gap:10px}
+@media (min-width:600px){ .modes{grid-template-columns:1fr 1fr} }
+.modecard{display:flex; flex-direction:column; align-items:flex-start; text-align:left; padding:14px; border-width:3px; gap:2px}
+.modecard .mtitle{font-size:19px; font-weight:800}
+.modecard .msub{font-weight:700; color:var(--c)}
+.modecard[aria-pressed="true"]{border-color:var(--c); background:var(--ct)}
+.modecard[aria-pressed="true"] .mtitle::before{content:"✓ "; color:var(--c)}
+
+/* branch */
+fieldset{border:0; margin:0; padding:0}
+legend{font-size:19px; font-weight:800; padding:0; margin-bottom:8px}
+.opts{display:grid; grid-template-columns:1fr; gap:8px}
+@media (min-width:600px){ .opts{grid-template-columns:1fr 1fr} }
+.opt{display:flex; align-items:center; gap:10px; min-height:52px; border:2px solid var(--line); border-radius:12px; padding:8px 12px; background:var(--card); cursor:pointer}
+.opt input{width:26px; height:26px; flex:0 0 26px; margin:0; accent-color:#2b8273}
+.opt.on{border-color:#2b8273; background:var(--soft)}
+
+/* top bar */
+.topbar{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 14px; background:var(--card); border-bottom:1px solid var(--line)}
+.topbar .who{flex:1 1 180px; min-width:0}
+.topbar .who b{display:block}
+.topbar button{padding:6px 12px}
+
+/* flow map */
+.mapwrap{background:var(--card); border-bottom:1px solid var(--line)}
+.map{overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
+.track{display:flex; align-items:flex-start; width:max-content; padding:6px 12px 10px}
+.node{display:flex; flex-direction:column; align-items:center; border:0; background:none; padding:32px 2px 2px; min-width:56px; border-radius:12px; color:var(--fg)}
+.node .dot{position:relative; width:44px; height:44px; border-radius:50%; border:3px solid var(--c); background:var(--card); color:var(--c);
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px}
+.node.done .dot{background:var(--c); color:var(--card)}
+.node.cur .dot{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--c)}
+.node .nlbl{white-space:nowrap; margin-top:4px; font-weight:600}
+.node.cur .nlbl{color:var(--c); font-weight:800}
+.node.off{opacity:.45}
+.node.off .dot{border-style:dashed}
+.node .nna{white-space:nowrap; color:var(--muted)}
+.badge{position:absolute; top:-9px; right:-12px; min-width:24px; height:24px; border-radius:12px; padding:0 5px;
+  background:var(--no); color:var(--onbadge); font-size:16px; line-height:24px; font-weight:800; text-align:center}
+.line{flex:0 0 14px; height:3px; background:var(--line); margin-top:52px; border-radius:2px}
+.grp{position:relative; border:2px dashed var(--c); border-radius:18px; padding:0 4px 2px}
+.grp .node{padding-top:30px}
+.grp .line{margin-top:50px}
+.grprow{display:flex; align-items:flex-start}
+.grplbl{position:absolute; top:2px; left:12px; white-space:nowrap; font-weight:800; color:var(--c)}
+.chips{display:flex; gap:6px; overflow-x:auto; padding:2px 12px 10px; -webkit-overflow-scrolling:touch}
+.chip{flex:0 0 auto; border-radius:22px; padding:6px 12px; font-weight:700; white-space:nowrap}
+.chip.cur{border-color:var(--c); box-shadow:inset 0 0 0 2px var(--c)}
+.chip.a-yes{color:var(--yes)} .chip.a-no{color:var(--no)} .chip.a-unk{color:var(--unk)} .chip.a-na{color:var(--na)}
+.chip.off{opacity:.45; border-style:dashed; font-weight:500}
+
+/* item card */
+.card{background:var(--card); border:1px solid var(--line); border-top:8px solid var(--c); border-radius:16px; padding:16px; margin-top:14px}
+.stagehead{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; color:var(--c); font-weight:800}
+.stagehead .stno{font-size:20px}
+.stagehead .pos{margin-left:auto; color:var(--muted); font-weight:600}
+.planned{background:var(--ct); border-radius:10px; padding:8px 12px; margin-top:10px}
+.qtext{font-size:22px; font-weight:800; margin-top:12px}
+.qtext:focus{outline:none}
+.iid{display:inline-block; font-size:16px; font-weight:800; color:var(--c); background:var(--ct); border-radius:8px; padding:0 8px; margin-right:6px; vertical-align:middle}
+.ex{color:var(--muted); margin-top:8px; padding-left:10px; border-left:3px solid var(--line)}
+.terms{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.termbtn{padding:4px 12px; border-radius:22px; border-color:var(--c); color:var(--c); font-weight:700}
+.termbtn[aria-expanded="true"]{background:var(--ct)}
+.termdef{background:var(--ct); border-radius:10px; padding:8px 12px; margin-top:8px}
+.hint{color:var(--muted); margin-top:14px}
+.answers{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px}
+.ans{min-height:56px; font-weight:800; font-size:17px; padding:8px 6px}
+.ans[aria-pressed="true"]{color:var(--card)}
+.ans.k-yes[aria-pressed="true"]{background:var(--yes); border-color:var(--yes)}
+.ans.k-no[aria-pressed="true"]{background:var(--no); border-color:var(--no)}
+.ans.k-unk[aria-pressed="true"]{background:var(--unk); border-color:var(--unk)}
+.ans.k-na[aria-pressed="true"]{background:var(--na); border-color:var(--na)}
+.qpanel{margin-top:16px; border:2px solid var(--c); border-radius:14px; padding:14px; background:var(--ct)}
+.qpanel h3{font-size:19px; color:var(--c)}
+.qrow{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:10px}
+.qrow.used{border:2px solid var(--c)}
+.qrowhead{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:6px}
+.use{display:flex; align-items:center; gap:8px; min-height:44px; font-weight:800; cursor:pointer; margin-right:auto}
+.use input{width:26px; height:26px; margin:0; accent-color:var(--c)}
+.qrowhead button{padding:4px 10px}
+.memo{margin-top:12px}
+.memo .lab{font-weight:700}
+
+/* bottom nav */
+.bottombar{position:sticky; bottom:0; z-index:5; background:var(--bg); border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.bottombar .inner{max-width:820px; margin:0 auto; display:grid; grid-template-columns:1fr 1.25fr 1fr; gap:8px}
+.bottombar button{padding:6px 8px; font-weight:700}
+
+/* stage page */
+.stagecard .stagehead{align-items:center}
+.stname{font-size:22px; color:var(--c)}
+.card.item{border-top-width:1px; border-left:6px solid var(--c)}
+.card.item .qtext{font-size:20px; margin-top:0}
+.card.item.answered{border-left-color:var(--line)}
+.offitem{opacity:.6; border:2px dashed var(--line); border-radius:12px; padding:10px 14px; margin-top:14px}
+.flash{animation:flash 1.6s ease-out}
+@keyframes flash{from{box-shadow:0 0 0 5px var(--c)} to{box-shadow:0 0 0 0 transparent}}
+
+/* summary */
+.tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:12px}
+@media (min-width:600px){ .tiles{grid-template-columns:repeat(5,1fr)} }
+.tile{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 10px; text-align:center}
+.tile b{display:block; font-size:24px}
+.t-yes b{color:var(--yes)} .t-no b{color:var(--no)} .t-unk b{color:var(--unk)} .t-na b{color:var(--na)}
+.sumstage{margin-top:14px; border-left:6px solid var(--c); padding-left:12px}
+.sumstage h3{font-size:19px; color:var(--c)}
+.sumitem{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:8px}
+.tag{display:inline-block; border-radius:8px; padding:0 8px; font-weight:800; color:var(--card); margin-right:6px}
+.tag.no{background:var(--no)} .tag.unk{background:var(--unk)}
+.sumitem ul{margin:8px 0 0; padding-left:1.2em}
+.sumitem li.used{font-weight:800}
+.usedlist{margin:8px 0 0; padding-left:1.4em}
+.usedlist li + li{margin-top:6px}
+.exporttext{min-height:260px; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:16px; white-space:pre; overflow:auto}
+.status{min-height:24px; margin-top:8px; font-weight:700; color:var(--yes)}
+
+/* modal / toast */
+.modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:16px; z-index:20}
+.modal .mbox{background:var(--card); border-radius:16px; padding:18px; max-width:420px; width:100%}
+.modal .mbox p{margin-bottom:14px; font-weight:700}
+.toast{position:fixed; left:50%; bottom:96px; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:10px 16px; border-radius:12px; z-index:30; max-width:calc(100% - 32px); font-weight:700; text-align:center}
+@media (prefers-reduced-motion:no-preference){ .card,.box{animation:fade .18s ease-out} @keyframes fade{from{opacity:.4; transform:translateY(4px)} to{opacity:1; transform:none}} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="live" class="hidden-el" aria-live="polite"></div>
+<noscript><p style="padding:16px">このアプリを使うには JavaScript を有効にしてください。</p></noscript>
+<script>
+(function(){
+'use strict';
+
+/* ================= データ ================= */
+var KEY = 'tankyu-toi-check-v1';
+
+var METHODS = [
+  {k:'sensor',   l:'測定機器・センサー・アプリ',        s:'測定機器・センサー・アプリ'},
+  {k:'survey',   l:'アンケート',                        s:'アンケート'},
+  {k:'obs',      l:'観察・記録（数える・メモする）',    s:'観察・記録'},
+  {k:'existing', l:'既存のデータ（ネット・学校の資料など）', s:'既存のデータ'},
+  {k:'notyet',   l:'まだ集めていない',                  s:'まだ集めていない'}
+];
+var TARGETS = [
+  {k:'self',   l:'自分たち自身',                     s:'自分たち自身'},
+  {k:'others', l:'他の生徒・先生など',               s:'他の生徒・先生など'},
+  {k:'thing',  l:'人ではない（モノ・場所・時間など）', s:'人ではない'}
+];
+
+var TERMS = {
+  '妥当性':'測りたいものを、ちゃんと測れているか。',
+  '信頼性':'同じ条件なら同じ結果が出るか。',
+  'ばらつき':'同じように測っても、人や回によって値が散らばること。',
+  '欠損値':'記録が抜けているところ。',
+  '外れ値':'他から大きく離れた値。',
+  '相関':'一緒に変わること。',
+  '因果':'一方が原因で、もう一方が変わること。',
+  '第三の要因':'AとBの両方を動かして、AとBに関係があるように見せている別のもの。',
+  '出典':'そのデータがどこから来たか（誰が・いつ・どうやって集めたか）。'
+};
+
+var COND_TEXT = {
+  sensor:'データの集め方で「測定機器・センサー・アプリ」を選んだときに出る項目です。',
+  human:'データを取った相手が「人」（自分たち自身／他の生徒・先生など）のときに出る項目です。',
+  self:'データを取った相手で「自分たち自身」を選んだときに出る項目です。',
+  c3yes:'C-3 が「はい」のときに出る項目です。',
+  survey:'データの集め方で「アンケート」を選んだときに出る段階です。',
+  obs:'データの集め方で「観察・記録」を選んだときに出る段階です。',
+  existing:'データの集め方で「既存のデータ」を選んだときに出る段階です。'
+};
+
+/* {S} は「この班」／「私たち」に置き換わる */
+var STAGES = [
+ {id:'s1', no:'①', name:'問い', short:'問い', sym:'①', col:'c1', items:[
+  {id:'1-1', q:'{S}の問いの中心の言葉は、意味が1つに決まっている？', ex:'集中力・緊張・やる気', r:'その『〇〇』って何種類ある？どれのこと？'},
+  {id:'1-2', q:'{S}の問いは、検索やAIに聞けば答えが出てしまう問いではない？', r:'調べて出てくる答えと、{S}が知りたいことはどこが違う？'},
+  {id:'1-3', q:'{S}の問いは、「この学校・この部活・この人たち」だからこその問いになっている？', r:'一般論ではなく、“うちの”〇〇についての問いになってる？'},
+  {id:'1-4', q:'{S}の問いは、今ある時間と道具で迫れる大きさの問い？', r:'全部は無理なら、まずどこに絞る？'},
+  {id:'1-5', q:'{S}が集めたデータで、この問いに近づける？（問いとデータがつながっている）', r:'そのデータが集まると、問いのどこがわかるの？'}
+ ]},
+ {id:'s2', no:'②', name:'仮説', short:'仮説', sym:'②', col:'c2', items:[
+  {id:'2-1', q:'{S}の仮説は、「Aが〇〇なら、Bは△△になる」の形で言える？', r:'何が変わると、何が変わると考えている？'},
+  {id:'2-2', q:'{S}は、なぜそう考えたのか、きっかけや根拠がある？', r:'その仮説はどんな経験から出てきた？'},
+  {id:'2-3', q:'{S}は、仮説が外れたら、どんなデータが出るか言える？', r:'どんな結果が出たら『仮説は違った』と認める？'},
+  {id:'2-4', q:'{S}は、別の仮説（反対の考え）も検討した？', r:'逆の仮説を立てるとしたら？'}
+ ]},
+ {id:'dA', no:'③-A', name:'何を測るか（定義）', short:'定義', sym:'A', col:'c3', data:true, items:[
+  {id:'A-1', q:'{S}は、知りたいものを、どんな数字や記録で表すか決めている？', ex:'知りたいもの＝集中力', r:'〇〇を数字にすると、何になる？'},
+  {id:'A-2', q:'{S}が使う数字は、知りたいものを本当に表している？', terms:['妥当性'], ex:'「机に向かっていた時間が長い＝集中していた」と言える？', r:'その数字が上がったら、本当に〇〇が上がったと言える？'},
+  {id:'A-3', q:'{S}は、1つの数字だけで判断していない？ 別の角度からの数字もある？', r:'その数字以外で〇〇を表すとしたら？'},
+  {id:'A-4', q:'{S}は、単位や記録の仕方（秒・回・5段階など）を決めている？', r:'人によって記録の仕方が違ったりしない？'},
+  {id:'A-5', q:'{S}の測り方は、特別な装置がなくても、自分たちで測り続けられる方法？', ex:'脳波は正確でも、毎日は測れない', r:'その測り方、明日も来週も続けられる？'}
+ ]},
+ {id:'dB', no:'③-B', name:'どう測るか（手順・条件）', short:'手順', sym:'B', col:'c3', data:true, items:[
+  {id:'B-1', q:'{S}の測る手順は、他の人が読んでもまねできるくらい決まっている？', r:'別の班が同じことをやろうとしたら、手順を説明できる？'},
+  {id:'B-2', q:'{S}は、時間帯・場所・天気・体調などの条件をそろえている（またはメモしている）？', r:'測った日によって条件が違わなかった？'},
+  {id:'B-3', q:'{S}の測り方は、誰が測っても同じ値になる？', terms:['信頼性'], r:'測る人が変わったら結果も変わらない？'},
+  {id:'B-4', q:'{S}は、同じものを2回以上測って、ばらつきを確かめた？', terms:['ばらつき'], r:'もう1回測ったら同じ数字になる？'},
+  {id:'B-5', cond:'sensor', q:'{S}は、機材やアプリの使い方・設定を全員でそろえている？', r:'スマホの持ち方や設定はみんな同じだった？'},
+  {id:'B-6', cond:'human', q:'{S}のデータでは、測られる人が「測られている」と知って、ふだんと違う行動をしていない？', r:'測られているとわかって、いつもより頑張っちゃわない？'},
+  {id:'B-7', q:'{S}の記録に、測る人の期待や思い込みが入り込んでいない？', ex:'仮説に合う方向に数えてしまう', r:'仮説を知っている人が測って大丈夫？'}
+ ]},
+ {id:'dC', no:'③-C', name:'誰・何から集めたか（サンプル）', short:'サンプル', sym:'C', col:'c3', data:true, items:[
+  {id:'C-1', q:'{S}のデータは何人分（何回分）ある？ その数で言いたいことが言える？', r:'〇人分で『みんな』と言える？'},
+  {id:'C-2', q:'{S}の対象の選び方に偏りはない？', ex:'仲のいい友達だけ、同じ部活だけ', r:'声をかけやすい人ばかりになっていない？'},
+  {id:'C-3', q:'{S}には、比べる相手（別のグループ・別の時期）がある？', r:'何と比べて多い・少ないと言っている？'},
+  {id:'C-4', cond:'c3yes', q:'{S}が比べる2つは、調べたいこと以外の条件がそろっている？', ex:'朝練あり・なしの班で、学年も違う', r:'その2つ、ほかにも違うところはない？'},
+  {id:'C-5', cond:'self', q:'{S}は、結果を知っていることで、自分たちの行動が変わっていない？', r:'自分で自分を測ると、無意識に結果を寄せない？'},
+  {id:'C-6', q:'{S}が言いたいことの範囲（学年全体？部活の中？）と、集めた相手の範囲が合っている？', r:'その結果、どこまでの人に当てはまると言える？'}
+ ]},
+ {id:'dD', no:'③-D', name:'アンケート', short:'アンケート', sym:'D', col:'c3', data:true, cond:'survey', items:[
+  {id:'D-1', q:'{S}のアンケートは、質問の言葉の基準が、人によって変わらない？', ex:'「よく」「めんどくさい」', r:'『めんどくさい』の基準、人によって違わない？'},
+  {id:'D-2', q:'{S}のアンケートは、1つの質問で2つのことを聞いていない？', ex:'「練習は楽しくて役に立つ？」', r:'その質問、2つのことを同時に聞いてない？'},
+  {id:'D-3', q:'{S}のアンケートは、答えを誘導する聞き方になっていない？', ex:'「〜は大切だと思いませんか？」', r:'質問の聞き方で答えが寄っていない？'},
+  {id:'D-4', q:'{S}のアンケートは、選択肢に抜けや重なりがない？（どれにも当てはまらない人はいない？）', r:'選べる答えがない人はいなかった？'},
+  {id:'D-5', q:'{S}のアンケートは、正直に答えにくい質問ではない？（記名・人前で答える・よく見られたい気持ち）', r:'本音で答えられる聞き方だった？'},
+  {id:'D-6', q:'{S}のアンケートは、何人に配って何人が答えた？ 答えなかった人に偏りはない？', r:'答えてくれなかった人は、どんな人？'},
+  {id:'D-7', q:'{S}は、自由記述の答えを、どうまとめるか決めている？', r:'自由記述はどうやって数えたり分けたりする？'},
+  {id:'D-8', q:'{S}のアンケートは、比べられる聞き方になっている？', ex:'「めんどくさい？」より「放課後1時間の練習を、週何回までなら集中してできる？」', r:'その答えを、どうやって比べる？'}
+ ]},
+ {id:'dE', no:'③-E', name:'観察・記録', short:'観察', sym:'E', col:'c3', data:true, cond:'obs', items:[
+  {id:'E-1', q:'{S}は、何を「1回」と数えるかの基準が決まっている？', r:'どこからどこまでを1回と数えた？'},
+  {id:'E-2', q:'{S}は、その場で記録した？（後から思い出して書いていない？）', r:'記録したのはいつ？'},
+  {id:'E-3', q:'{S}は、複数人で記録したとき、基準がそろっている？', r:'AさんとBさんで数え方が違わない？'}
+ ]},
+ {id:'dF', no:'③-F', name:'既存のデータ', short:'既存データ', sym:'F', col:'c3', data:true, cond:'existing', items:[
+  {id:'F-1', q:'{S}が使った既存のデータは、出典（誰が・いつ・どうやって集めたか）がわかっている？', terms:['出典'], r:'そのデータ、誰がどうやって集めたもの？'},
+  {id:'F-2', q:'そのデータは、{S}の対象（この学校・この部活）に当てはまる？', r:'全国のデータが、うちの学校にも当てはまる？'}
+ ]},
+ {id:'dG', no:'③-G', name:'記録と管理', short:'記録', sym:'G', col:'c3', data:true, items:[
+  {id:'G-1', q:'{S}のデータは、表（スプレッドシート）にまとまっている？', r:'データは1つの表で見られる？'},
+  {id:'G-2', q:'{S}のデータに、抜けている日や人（欠けたデータ）はない？ あるならどう扱う？', terms:['欠損値'], r:'記録が抜けた日はどうした？'},
+  {id:'G-3', q:'{S}は、測ったときに起きた特別なこと（雨・体調不良・行事）をメモしている？', r:'いつもと違う日はなかった？'},
+  {id:'G-4', q:'{S}は、加工する前の元データを残している？', r:'元の数字に戻って確かめられる？'},
+  {id:'G-5', cond:'human', q:'{S}は、本人の同意をとり、名前を伏せて扱っている？', r:'データを取られた人は、どう使われるか知っている？'}
+ ]},
+ {id:'dH', no:'③-H', name:'量と期間', short:'量と期間', sym:'H', col:'c3', data:true, items:[
+  {id:'H-1', q:'{S}は、1回だけの測定で結論を出していない？', r:'たまたまその日だけ、ということはない？'},
+  {id:'H-2', q:'変化を見たいなら、{S}には前と後（または続けた記録）がある？', r:'変わった、と言える『前』のデータはある？'},
+  {id:'H-3', q:'{S}が測っている間に、結果に影響しそうな出来事（テスト期間・大会・行事）はなかった？', r:'その期間、何か特別なことはなかった？'}
+ ]},
+ {id:'s4', no:'④', name:'分析と気づき', short:'分析', sym:'④', col:'c4', items:[
+  {id:'4-1', q:'{S}は、平均だけで判断していない？ 人による差（ばらつき）も見た？', terms:['ばらつき'], r:'平均は同じでも、人によって全然違ったりしない？'},
+  {id:'4-2', q:'{S}は、飛び抜けた値（外れ値）を、理由を確かめずに消したり使ったりしていない？', terms:['外れ値'], r:'その飛び抜けた数字、何があった？'},
+  {id:'4-3', q:'{S}のグラフは、軸や目盛りで、差を大きく（小さく）見せていない？', r:'グラフの目盛りは0から始まってる？'},
+  {id:'4-4', q:'{S}は、「関係がある」と「原因である」を区別している？', terms:['相関','因果'], r:'AがBの原因って言える？一緒に変わっているだけでは？'},
+  {id:'4-5', q:'{S}は、逆向き（BがAの原因）の可能性を考えた？', r:'逆に、BだからAになった可能性は？'},
+  {id:'4-6', q:'{S}が見つけた関係は、別の理由（第三の要因）でも説明できない？', terms:['第三の要因'], ex:'アイスの売り上げと水難事故は、どちらも「暑さ」で増える', r:'その2つを両方動かしている、別の何かはない？'},
+  {id:'4-7', q:'{S}は、予想と違ったデータを無視していない？', r:'仮説に合わなかったデータはどう扱った？'},
+  {id:'4-8', q:'{S}は、データから言えることと、言えないこと（言い過ぎ）を分けている？', r:'このデータでそこまで言える？'}
+ ]},
+ {id:'s5', no:'⑤', name:'次の一手', short:'次の一手', sym:'⑤', col:'c5', items:[
+  {id:'5-1', q:'{S}には、次に集めるべきデータ・確かめるべきことが見えている？', r:'次に何を測れば、一番はっきりする？'}
+ ]}
+];
+
+var ORDER = [], ITEM = {}, STAGE_OF = {}, STAGE = {};
+STAGES.forEach(function(st){ STAGE[st.id]=st; st.items.forEach(function(it){ ORDER.push(it.id); ITEM[it.id]=it; STAGE_OF[it.id]=st; }); });
+
+var ANS = {yes:'はい', no:'いいえ', unk:'動画ではわからない', na:'当てはまらない'};
+var ANS_TAG = {yes:'はい', no:'いいえ', unk:'わからない', na:'該当なし'};
+
+/* ================= 状態と保存 ================= */
+function blank(){
+  return {v:1, screen:'start', mode:'',
+    methods:[], targets:[], answers:{}, qs:{}, memo:{}, cur:null, good:'', ask:''};
+}
+var storageOK = (function(){
+  try{ var t='__t'+Date.now(); window.localStorage.setItem(t,'1'); window.localStorage.removeItem(t); return true; }catch(e){ return false; }
+})();
+function load(){
+  var s = blank();
+  try{
+    var raw = window.localStorage.getItem(KEY);
+    if(raw){
+      var o = JSON.parse(raw);
+      if(o && typeof o==='object'){
+        Object.keys(s).forEach(function(k){
+          if(o[k]!==undefined && typeof o[k]===typeof s[k] && Array.isArray(o[k])===Array.isArray(s[k])) s[k]=o[k];
+        });
+        if(typeof o.cur==='string'){ if(STAGE[o.cur]) s.cur=o.cur; else if(ITEM[o.cur]) s.cur=STAGE_OF[o.cur].id; }
+      }
+    }
+  }catch(e){}
+  if(['start','branch','check','summary'].indexOf(s.screen)<0) s.screen='start';
+  if(s.screen!=='start' && !s.mode) s.screen='start';
+  return s;
+}
+var S = load();
+var saveTimer = null;
+function saveNow(){
+  clearTimeout(saveTimer);
+  try{ window.localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+}
+function saveSoon(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveNow, 300); }
+window.addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') saveNow(); });
+
+/* ================= ヘルパー ================= */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function has(a,k){ return a.indexOf(k)>=0; }
+function isSelf(){ return S.mode==='self'; }
+function subj(){ return isSelf() ? '私たち' : 'この班'; }
+function fmt(t){ return String(t).split('{S}').join(subj()); }
+function planned(){ return has(S.methods,'notyet'); }
+function qLabel(){ return isSelf() ? '自分たちへの問い（相談会で聞きたいこと）' : 'この班にぶつける問い'; }
+function condOK(c){
+  switch(c){
+    case 'sensor': return has(S.methods,'sensor');
+    case 'survey': return has(S.methods,'survey');
+    case 'obs': return has(S.methods,'obs');
+    case 'existing': return has(S.methods,'existing');
+    case 'human': return has(S.targets,'self') || has(S.targets,'others');
+    case 'self': return has(S.targets,'self');
+    case 'c3yes': return S.answers['C-3']==='yes';
+  }
+  return true;
+}
+function stageOn(st){ return !st.cond || condOK(st.cond); }
+function itemOn(id){ var st=STAGE_OF[id], it=ITEM[id]; return stageOn(st) && (!it.cond || condOK(it.cond)); }
+function visibleIds(){ return ORDER.filter(itemOn); }
+function itemText(id){
+  var it=ITEM[id], st=STAGE_OF[id];
+  return (st.data && planned() ? '（予定）' : '') + fmt(it.q);
+}
+function getQs(id){
+  if(!Array.isArray(S.qs[id])) S.qs[id]=[{t:null, use:false}];
+  return S.qs[id];
+}
+function qText(id, q){ return q.t==null ? fmt(ITEM[id].r) : q.t; }
+function isFlag(a){ return a==='no' || a==='unk'; }
+function counts(){
+  var c={yes:0,no:0,unk:0,na:0,hiddenNa:0,none:0};
+  ORDER.forEach(function(id){
+    if(!itemOn(id)){ c.na++; c.hiddenNa++; return; }
+    var a=S.answers[id];
+    if(a && c[a]!==undefined) c[a]++; else c.none++;
+  });
+  return c;
+}
+function firstVisibleFrom(idx){ for(var i=idx;i<ORDER.length;i++){ if(itemOn(ORDER[i])) return ORDER[i]; } return null; }
+function lastVisibleBefore(idx){ for(var i=idx;i>=0;i--){ if(itemOn(ORDER[i])) return ORDER[i]; } return null; }
+function pad(n){ return (n<10?'0':'')+n; }
+function nowStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function ymd(){ var d=new Date(); return ''+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate()); }
+
+var app = document.getElementById('app');
+var openTerms = {};
+var toastTimer = null;
+function toast(msg){
+  var old=document.querySelector('.toast'); if(old) old.remove();
+  var t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent=msg;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.remove(); }, 2600);
+}
+function confirmBox(msg, okLabel, onOk){
+  var m=document.createElement('div'); m.className='modal';
+  m.innerHTML='<div class="mbox" role="dialog" aria-modal="true" aria-label="確認"><p>'+esc(msg)+'</p><div class="row"><button type="button" data-m="cancel">やめる</button><button type="button" class="primary" data-m="ok">'+esc(okLabel)+'</button></div></div>';
+  document.body.appendChild(m);
+  var cancel=m.querySelector('[data-m=cancel]'); cancel.focus();
+  m.addEventListener('click',function(e){
+    var b=e.target.closest('[data-m]');
+    if(e.target===m || (b && b.getAttribute('data-m')==='cancel')){ m.remove(); return; }
+    if(b && b.getAttribute('data-m')==='ok'){ m.remove(); onOk(); }
+  });
+}
+
+/* ================= 画面：スタート ================= */
+function renderStart(){
+  var L = S.mode==='listener', Sf = S.mode==='self';
+  var h = '<div class="wrap">';
+  h += '<header class="hero"><p class="kicker">総合的な探究の時間・相談会</p><h1>探究を一歩進める<br>問いを見つけよう</h1>';
+  h += '<p class="lead">このチェックは、相手の探究をダメだと言うためではなく、前に進めるための問いを見つけるためのものです。</p></header>';
+  h += '<section class="box"><h2>どちらをチェックする？</h2><div class="modes">';
+  h += '<button type="button" class="modecard c1" data-act="mode" data-v="listener" aria-pressed="'+L+'"><span class="mtitle">他の班をチェックする</span><span class="msub">聞き手</span><span class="muted">動画を見て、相手の班にぶつける問いを作る</span></button>';
+  h += '<button type="button" class="modecard c3" data-act="mode" data-v="self" aria-pressed="'+Sf+'"><span class="mtitle">自分たちの班をチェックする</span><span class="msub">自己点検</span><span class="muted">相談会で聞きたいことを見つける</span></button>';
+  h += '</div></section>';
+  h += '<p class="muted" style="margin-top:12px">'+(storageOK?'入力した内容は、この端末のブラウザに自動で保存されます。':'この環境では自動保存が使えません。最後に「テキストをコピー」などで必ず書き出してください。')+'</p>';
+  h += '<p class="err" id="starterr" role="alert"></p>';
+  h += '<div class="stack" style="margin-top:8px"><button type="button" class="primary" style="width:100%" data-act="toBranch">次へ：データの集め方を答える</button>';
+  if(Object.keys(S.answers).length) h += '<button type="button" class="ghost" style="width:100%" data-act="restart">最初からやり直す</button>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ================= 画面：分岐の質問 ================= */
+function renderBranch(){
+  var h='<div class="wrap">';
+  h+='<h1 style="font-size:24px">データの集め方を確認しよう</h1>';
+  h+='<p class="muted" style="margin-top:6px">ここでの答えによって、このあと出てくるチェック項目が変わります。'+(isSelf()?'':'動画からわかる範囲で選んでください。')+'</p>';
+  h+='<section class="box"><fieldset><legend>'+(isSelf()?'私たちの':'この班の')+'データの集め方はどれ？（複数選択）</legend><div class="opts">';
+  METHODS.forEach(function(m){ var on=has(S.methods,m.k);
+    h+='<label class="opt'+(on?' on':'')+'"><input type="checkbox" data-act="method" value="'+m.k+'"'+(on?' checked':'')+'><span>'+esc(m.l)+'</span></label>'; });
+  h+='</div>';
+  if(planned()) h+='<p class="note">「まだ集めていない」を選んだので、③データ収集の項目は「計画として決まっているか」で答えます（項目の頭に「（予定）」が付きます）。予定している集め方があれば、それも一緒に選んでください。</p>';
+  h+='</fieldset></section>';
+  h+='<section class="box"><fieldset><legend>データを取った相手は？（複数選択）</legend><div class="opts">';
+  TARGETS.forEach(function(m){ var on=has(S.targets,m.k);
+    h+='<label class="opt'+(on?' on':'')+'"><input type="checkbox" data-act="target" value="'+m.k+'"'+(on?' checked':'')+'><span>'+esc(m.l)+'</span></label>'; });
+  h+='</div></fieldset></section>';
+  h+='<p class="err" id="brerr" role="alert"></p>';
+  h+='<div class="row" style="margin-top:12px"><button type="button" data-act="toStart">戻る</button><button type="button" class="primary" style="flex:2 1 auto" data-act="toCheck">次へ：チェックを始める</button></div>';
+  h+='</div>';
+  return h;
+}
+
+/* ================= 画面：チェック ================= */
+function mapHTML(curStage, onSummary){
+  var h='<div class="map" id="map"><div class="track">';
+  var first=true;
+  STAGES.forEach(function(st,i){
+    var inG = !!st.data, prevG = i>0 && !!STAGES[i-1].data, nextG = i<STAGES.length-1 && !!STAGES[i+1].data;
+    if(inG && !prevG){ if(!first) h+='<span class="line"></span>'; h+='<div class="grp c3"><span class="grplbl">③ データ収集</span><div class="grprow">'; }
+    else if(!first) h+='<span class="line"></span>';
+    h+=nodeHTML(st, st.id===curStage);
+    if(inG && !nextG) h+='</div></div>';
+    first=false;
+  });
+  h+='<span class="line"></span>';
+  h+='<button type="button" class="node c6'+(onSummary?' cur':'')+'" data-act="toSummary" aria-label="まとめへ"><span class="dot">✓</span><span class="nlbl">まとめ</span></button>';
+  h+='</div></div>';
+  return h;
+}
+function nodeHTML(st, cur){
+  var vis = st.items.filter(function(it){ return itemOn(it.id); });
+  var off = vis.length===0;
+  var flag = vis.filter(function(it){ return isFlag(S.answers[it.id]); }).length;
+  var done = !off && vis.every(function(it){ return !!S.answers[it.id]; });
+  var cls='node '+st.col+(off?' off':'')+(cur?' cur':'')+(done?' done':'');
+  var lab=st.no+' '+st.name+(off?'（該当なし）':'')+(flag?'、引っかかり '+flag+'件':'');
+  return '<button type="button" class="'+cls+'" data-act="gostage" data-s="'+st.id+'" aria-label="'+esc(lab)+'"'+(cur?' aria-current="step"':'')+'>'+
+    '<span class="dot">'+esc(st.sym)+(flag?'<span class="badge">'+flag+'</span>':'')+'</span>'+
+    '<span class="nlbl">'+esc(st.short)+'</span>'+(off?'<span class="nna">該当なし</span>':'')+'</button>';
+}
+function topbarHTML(){
+  var t = isSelf() ? '自己点検：自分たちの班をチェック' : '聞き手：他の班をチェック';
+  return '<div class="topbar"><div class="who"><b>'+esc(t)+'</b></div>'+
+    '<button type="button" data-act="toBranch">集め方を変える</button><button type="button" data-act="toSummary">まとめを見る</button></div>';
+}
+function renderCheck(){
+  var vs=visibleStages();
+  if(!vs.length){ S.screen='summary'; return renderSummary(); }
+  if(!S.cur || !STAGE[S.cur] || vs.indexOf(STAGE[S.cur])<0){
+    var si = (S.cur && STAGE[S.cur]) ? STAGES.indexOf(STAGE[S.cur]) : 0;
+    S.cur = (stageFrom(si) || vs[vs.length-1]).id;
+  }
+  var st=STAGE[S.cur];
+  var vis=st.items.filter(function(x){ return itemOn(x.id); });
+  var done=vis.filter(function(x){ return !!S.answers[x.id]; }).length;
+  var si2=vs.indexOf(st);
+
+  var h = topbarHTML();
+  h += '<div class="mapwrap '+st.col+'">'+mapHTML(st.id,false)+'</div>';
+  h += '<div class="wrap" style="padding-top:0"><section class="card stagecard '+st.col+'">';
+  h += '<div class="stagehead"><span class="stno">'+esc(st.no)+'</span><h1 class="stname" id="qtext" tabindex="-1">'+esc(st.name)+'</h1>';
+  h += '<span class="pos">段階 '+(si2+1)+' / '+vs.length+'・回答 <b id="donecount">'+done+'</b> / '+vis.length+'</span></div>';
+  if(st.data && planned()) h += '<p class="planned">まだデータを集めていないので、「計画として決まっているか」で答えよう。</p>';
+  h += '<p class="hint">この段階の '+vis.length+' 項目に答えよう。「はい」＝できていそう／「いいえ」「わからない」＝ここに問いがありそう</p>';
+  h += '</section>';
+  var n=0;
+  st.items.forEach(function(it){
+    if(itemOn(it.id)){ n++; h += itemHTML(it, st, n); }
+    else h += '<p class="offitem"><b>'+it.id+'</b> 該当なし<br><span class="muted">'+esc(COND_TEXT[it.cond]||'')+'</span></p>';
+  });
+  h += '</div>';
+  var isLast = !stageFrom(STAGES.indexOf(st)+1);
+  h += '<nav class="bottombar" aria-label="移動"><div class="inner">'+
+    '<button type="button" data-act="prev">戻る</button>'+
+    '<button type="button" data-act="skip">この段階をスキップ</button>'+
+    '<button type="button" class="primary" data-act="next">'+(isLast?'まとめへ':'次の段階へ')+'</button></div></nav>';
+  return h;
+}
+function itemHTML(it, st, n){
+  var id=it.id, a=S.answers[id];
+  var h = '<article class="card item '+st.col+(a?' answered':'')+'" id="it-'+id+'">';
+  h += '<h2 class="qtext"><span class="iid">'+id+'</span>'+esc(itemText(id))+'</h2>';
+  if(it.ex) h += '<p class="ex">例：'+esc(it.ex)+'</p>';
+  if(it.terms){
+    h += '<div class="terms">';
+    it.terms.forEach(function(t){ var k=id+'|'+t; h+='<button type="button" class="termbtn" data-act="term" data-i="'+id+'" data-t="'+esc(t)+'" aria-expanded="'+(!!openTerms[k])+'">？ '+esc(t)+'</button>'; });
+    h += '</div>';
+    it.terms.forEach(function(t){ if(openTerms[id+'|'+t]) h+='<p class="termdef"><b>'+esc(t)+'</b>＝'+esc(TERMS[t]||'')+'</p>'; });
+  }
+  h += '<div class="answers" role="group" aria-label="'+id+' の回答">';
+  ['yes','no','unk','na'].forEach(function(k){ h+='<button type="button" class="ans k-'+k+'" data-act="answer" data-i="'+id+'" data-v="'+k+'" aria-pressed="'+(a===k)+'">'+ANS[k]+'</button>'; });
+  h += '</div>';
+  if(isFlag(a)){
+    var qs=getQs(id);
+    h += '<section class="qpanel"><h3>'+esc(qLabel())+'</h3>';
+    h += '<p class="muted" style="margin-top:4px">例をそのまま使っても、自分の言葉に書き換えてもOK。「この問いを使う」はいくつ付けてもかまいません。</p>';
+    qs.forEach(function(q,i){
+      h += '<div class="qrow'+(q.use?' used':'')+'"><div class="qrowhead">'+
+        '<label class="use"><input type="checkbox" data-act="use" data-i="'+id+'" data-q="'+i+'"'+(q.use?' checked':'')+'>この問いを使う</label>';
+      if(i===0 && q.t!=null) h += '<button type="button" data-act="resetq" data-i="'+id+'">例に戻す</button>';
+      if(i>0) h += '<button type="button" data-act="delq" data-i="'+id+'" data-q="'+i+'">消す</button>';
+      h += '</div><textarea data-act="qtext" data-i="'+id+'" data-q="'+i+'" aria-label="'+id+' の問い '+(i+1)+'" rows="2" placeholder="自分の言葉で問いを書こう">'+esc(qText(id,q))+'</textarea></div>';
+    });
+    h += '<button type="button" style="margin-top:10px; width:100%" data-act="addq" data-i="'+id+'">＋ 自分で問いを追加する</button>';
+    h += '<div class="memo"><label for="memo-'+id+'"><span class="lab">メモ（動画のどこで気になったか など）</span></label><textarea id="memo-'+id+'" data-act="memo" data-i="'+id+'" rows="3">'+esc(S.memo[id]||'')+'</textarea></div>';
+    h += '</section>';
+  }
+  h += '</article>';
+  return h;
+}
+
+/* ================= 画面：まとめ ================= */
+function renderSummary(){
+  var c=counts();
+  var h = topbarHTML();
+  h += '<div class="mapwrap">'+mapHTML(null,true)+'</div>';
+  h += '<div class="wrap"><h1 style="font-size:24px">まとめ</h1>';
+  h += '<div class="tiles"><div class="tile t-yes">はい<b>'+c.yes+'</b></div><div class="tile t-no">いいえ<b>'+c.no+'</b></div><div class="tile t-unk">わからない<b>'+c.unk+'</b></div><div class="tile t-na">該当なし<b>'+c.na+'</b></div><div class="tile">未回答<b>'+c.none+'</b></div></div>';
+  if(c.none) h += '<p class="muted" style="margin-top:8px">未回答が '+c.none+' 件あります。進行マップの段階をタップすると戻れます。</p>';
+
+  var used = usedList();
+  h += '<section class="box"><h2>「使う」にした問い</h2><p class="muted">'+esc(qLabel())+'</p>';
+  if(used.length){
+    h += '<ol class="usedlist">'; used.forEach(function(u){ h+='<li>'+esc(u.text)+' <span class="muted">（'+esc(u.id)+'）</span></li>'; }); h += '</ol>';
+  } else h += '<p class="muted">まだありません。「いいえ」「わからない」の項目で「この問いを使う」にチェックすると、ここに集まります。</p>';
+  h += '</section>';
+
+  h += '<section class="box"><h2>「いいえ／わからない」の項目</h2>';
+  var any=false;
+  STAGES.forEach(function(st){
+    var fl = st.items.filter(function(it){ return itemOn(it.id) && isFlag(S.answers[it.id]); });
+    if(!fl.length) return; any=true;
+    h += '<div class="sumstage '+st.col+'"><h3>'+esc(st.no+' '+st.name)+'</h3>';
+    fl.forEach(function(it){
+      var a=S.answers[it.id], qs=getQs(it.id);
+      h += '<div class="sumitem"><p><span class="tag '+a+'">'+ANS_TAG[a]+'</span><b>'+it.id+'</b> '+esc(itemText(it.id))+'</p><ul>';
+      qs.forEach(function(q){ var t=qText(it.id,q); if(!t.trim()) return; h+='<li class="'+(q.use?'used':'')+'">'+(q.use?'★使う：':'候補：')+esc(t)+'</li>'; });
+      if(S.memo[it.id]) h += '<li>メモ：'+esc(S.memo[it.id])+'</li>';
+      h += '</ul><button type="button" style="margin-top:8px" data-act="goitem" data-i="'+it.id+'">この項目を開く</button></div>';
+    });
+    h += '</div>';
+  });
+  if(!any) h += '<p class="muted">ありません。</p>';
+  h += '</section>';
+
+  h += '<section class="box"><div class="field"><label for="good"><span class="lab">よかったところ</span></label><textarea id="good" data-act="good" rows="3">'+esc(S.good)+'</textarea></div>';
+  h += '<div class="field"><label for="ask"><span class="lab">全体を通して聞きたいこと</span></label><textarea id="ask" data-act="ask" rows="3">'+esc(S.ask)+'</textarea></div></section>';
+
+  h += '<section class="box"><h2>書き出す</h2><div class="row">';
+  h += '<button type="button" class="primary" data-act="download">テキストファイルに書き出す</button>';
+  h += '<button type="button" data-act="copy">テキストをコピー</button>';
+  if(navigator.share) h += '<button type="button" data-act="share">共有</button>';
+  h += '</div><p class="muted" style="margin-top:8px">ダウンロードできないときは「テキストをコピー」か、下の文章を長押しして全部選んでコピーしてください。</p>';
+  h += '<p class="status" id="exstatus" role="status"></p>';
+  h += '<label for="exporttext" class="lab" style="margin-top:6px">書き出す内容（全文）</label><textarea id="exporttext" class="exporttext" readonly>'+esc(buildText())+'</textarea></section>';
+
+  h += '<div class="row" style="margin-top:16px"><button type="button" data-act="backCheck">チェックに戻る</button><button type="button" class="ghost" data-act="restart">最初からやり直す</button></div>';
+  h += '</div>';
+  return h;
+}
+function usedList(){
+  var out=[];
+  ORDER.forEach(function(id){
+    if(!itemOn(id) || !isFlag(S.answers[id])) return;
+    getQs(id).forEach(function(q){ var t=qText(id,q); if(q.use && t.trim()) out.push({id:id, text:t.trim()}); });
+  });
+  return out;
+}
+
+/* ================= テキスト書き出し ================= */
+function indent(t, head){
+  var lines=String(t).replace(/\r\n?/g,'\n').split('\n');
+  return head + lines.join('\n' + new Array(head.length+3).join(' '));
+}
+function buildText(){
+  var L=[], bar='==============================', sep='------------------------------';
+  var methods=METHODS.filter(function(m){return has(S.methods,m.k);}).map(function(m){return m.s;}).join('、')||'（未選択）';
+  var targets=TARGETS.filter(function(m){return has(S.targets,m.k);}).map(function(m){return m.s;}).join('、')||'（未選択）';
+  L.push(bar, '相談シート（'+(isSelf()?'自己点検':'聞き手チェック')+'）', bar);
+  L.push('日時：'+nowStr());
+  L.push('データの集め方：'+methods);
+  L.push('データを取った相手：'+targets);
+  L.push(sep);
+  L.push('■ 「使う」にした問い（'+(isSelf()?'自分たちへの問い':'この班にぶつける問い')+'）');
+  var used=usedList();
+  if(used.length) used.forEach(function(u,i){ L.push(indent(u.text, (i+1)+'. ')); });
+  else L.push('（なし）');
+  L.push(sep);
+  var any=false;
+  STAGES.forEach(function(st){
+    var fl=st.items.filter(function(it){ return itemOn(it.id) && isFlag(S.answers[it.id]); });
+    if(!fl.length) return; any=true;
+    L.push('■ '+st.no+' '+st.name);
+    fl.forEach(function(it){
+      L.push('['+ANS_TAG[S.answers[it.id]]+'] '+it.id+' '+itemText(it.id));
+      var qs=getQs(it.id), anyUse=qs.some(function(q){return q.use && qText(it.id,q).trim();});
+      qs.forEach(function(q){
+        var t=qText(it.id,q).trim(); if(!t) return;
+        if(q.use) L.push(indent(t,'  → 問い返し：'));
+        else L.push(indent(t, anyUse ? '  → 問い返し（候補）：' : '  → 問い返し（例）：'));
+      });
+      if(S.memo[it.id] && S.memo[it.id].trim()) L.push(indent(S.memo[it.id].trim(),'  → メモ：'));
+    });
+  });
+  if(!any) L.push('（「いいえ」「わからない」の項目はありません）');
+  L.push(sep);
+  L.push('■ よかったところ', S.good.trim()||'（未記入）');
+  L.push('■ 全体を通して聞きたいこと', S.ask.trim()||'（未記入）');
+  L.push(sep);
+  var c=counts();
+  L.push('チェック結果：はい '+c.yes+'／いいえ '+c.no+'／わからない '+c.unk+'／該当なし '+c.na+(c.none?'／未回答 '+c.none:''));
+  if(c.hiddenNa) L.push('（該当なしのうち '+c.hiddenNa+' 件は、データの集め方などの分岐で表示されなかった項目）');
+  return L.join('\n')+'\n';
+}
+function fileName(){
+  var d=new Date();
+  return '相談シート_'+(isSelf()?'自己点検':'聞き手')+'_'+ymd()+'_'+pad(d.getHours())+pad(d.getMinutes())+'.txt';
+}
+function setStatus(msg){ var el=document.getElementById('exstatus'); if(el) el.textContent=msg; }
+function doDownload(){
+  saveNow();
+  try{
+    var blob=new Blob(['﻿'+buildText()],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=fileName(); a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ try{URL.revokeObjectURL(url);}catch(e){} }, 4000);
+    setStatus('書き出しました：'+fileName()+'（保存されていなければ「テキストをコピー」を使ってください）');
+  }catch(e){
+    setStatus('この画面ではダウンロードできませんでした。「テキストをコピー」を使ってください。');
+  }
+}
+function fallbackCopy(){
+  var ta=document.getElementById('exporttext'); if(!ta) return false;
+  ta.value=buildText();
+  var ok=false;
+  try{
+    ta.removeAttribute('readonly'); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    ok=document.execCommand('copy');
+  }catch(e){ ok=false; }
+  ta.setAttribute('readonly','');
+  return ok;
+}
+function doCopy(){
+  var text=buildText();
+  var done=function(){ setStatus('コピーしました。メモアプリなどに貼り付けてください。'); };
+  var fail=function(){
+    if(fallbackCopy()) done();
+    else setStatus('自動でコピーできませんでした。下の文章を長押しして「すべてを選択」→「コピー」してください。');
+  };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else fail();
+  }catch(e){ fail(); }
+}
+function doShare(){
+  var text=buildText(), title=fileName().replace(/\.txt$/,'');
+  try{
+    var file=null;
+    try{ file=new File([text], fileName(), {type:'text/plain'}); }catch(e){ file=null; }
+    var data = (file && navigator.canShare && navigator.canShare({files:[file]})) ? {files:[file], title:title} : {title:title, text:text};
+    navigator.share(data).then(function(){ setStatus('共有しました。'); }, function(err){
+      if(err && err.name==='AbortError') return;
+      setStatus('共有できませんでした。「テキストをコピー」を使ってください。');
+    });
+  }catch(e){ setStatus('共有できませんでした。「テキストをコピー」を使ってください。'); }
+}
+
+/* ================= 描画と移動 ================= */
+function render(opts){
+  var h;
+  if(S.screen==='branch') h=renderBranch();
+  else if(S.screen==='check') h=renderCheck();
+  else if(S.screen==='summary') h=renderSummary();
+  else h=renderStart();
+  app.innerHTML=h;
+  var cs = S.screen==='check' ? (' '+STAGE[S.cur].col) : '';
+  document.body.className = 'scr-'+S.screen + cs;
+  centerMap();
+  if(opts && opts.top){
+    try{ window.scrollTo(0,0); }catch(e){}
+    if(S.screen==='check'){ var q=document.getElementById('qtext'); if(q){ try{ q.focus({preventScroll:true}); }catch(e){ } } }
+  }
+  saveSoon();
+}
+function centerMap(){
+  var map=document.getElementById('map'); if(!map) return;
+  var cur=map.querySelector('.node.cur'); if(!cur) return;
+  var mr=map.getBoundingClientRect(), cr=cur.getBoundingClientRect();
+  map.scrollLeft += (cr.left + cr.width/2) - (mr.left + mr.width/2);
+}
+function go(screen){ S.screen=screen; render({top:true}); }
+function visibleStages(){ return STAGES.filter(function(st){ return st.items.some(function(it){ return itemOn(it.id); }); }); }
+function stageFrom(i){ var vs=visibleStages(); for(;i<STAGES.length;i++){ if(vs.indexOf(STAGES[i])>=0) return STAGES[i]; } return null; }
+function stageBefore(i){ var vs=visibleStages(); for(;i>=0;i--){ if(vs.indexOf(STAGES[i])>=0) return STAGES[i]; } return null; }
+function goStage(sid, itemId){
+  S.cur=sid; S.screen='check'; render({top:!itemId});
+  if(itemId){
+    var el=document.getElementById('it-'+itemId);
+    if(el){ try{ el.scrollIntoView({block:'start'}); }catch(e){} el.classList.add('flash'); }
+  }
+}
+function unansweredHere(){
+  return STAGE[S.cur].items.filter(function(it){ return itemOn(it.id) && !S.answers[it.id]; });
+}
+function next(){
+  var n=stageFrom(STAGES.indexOf(STAGE[S.cur])+1);
+  if(n) goStage(n.id); else go('summary');
+}
+function nextChecked(){
+  var u=unansweredHere();
+  if(!u.length){ next(); return; }
+  confirmBox('まだ答えていない項目が '+u.length+' 件あります（'+u.map(function(x){return x.id;}).join('、')+'）。このまま次へ進みますか？','進む',next);
+}
+function prev(){
+  var p=stageBefore(STAGES.indexOf(STAGE[S.cur])-1);
+  if(p) goStage(p.id); else go('branch');
+}
+function skipStage(){
+  var st=STAGE[S.cur]; next(); toast(st.no+' をスキップしました');
+}
+
+/* ================= イベント ================= */
+document.addEventListener('click', function(e){
+  var b=e.target.closest('[data-act]'); if(!b || !app.contains(b)) return;
+  var act=b.getAttribute('data-act');
+  if(b.tagName==='INPUT' || b.tagName==='TEXTAREA') return;
+  var iid=b.getAttribute('data-i');
+  switch(act){
+    case 'mode': S.mode=b.getAttribute('data-v'); render(); break;
+    case 'toBranch':
+      if(S.screen==='start' && !S.mode){ var er=document.getElementById('starterr'); if(er) er.textContent='「どちらをチェックする？」を選んでください。'; return; }
+      go('branch'); break;
+    case 'toStart': go('start'); break;
+    case 'toCheck':
+      if(!S.methods.length || !S.targets.length){
+        var e2=document.getElementById('brerr');
+        if(e2) e2.textContent = !S.methods.length ? '「データの集め方」を1つ以上選んでください。' : '「データを取った相手」を1つ以上選んでください。';
+        return;
+      }
+      S.screen='check'; render({top:true}); break;
+    case 'toSummary': go('summary'); break;
+    case 'backCheck': S.screen='check'; render({top:true}); break;
+    case 'gostage':
+      var st=STAGE[b.getAttribute('data-s')];
+      if(!st.items.some(function(it){return itemOn(it.id);})){ toast(st.no+' '+st.name+'：'+(COND_TEXT[st.cond]||'該当なしです')); return; }
+      goStage(st.id); break;
+    case 'goitem':
+      if(!itemOn(iid)){ toast(iid+' は該当なしです'); return; }
+      goStage(STAGE_OF[iid].id, iid); break;
+    case 'term':
+      var k=iid+'|'+b.getAttribute('data-t'); openTerms[k]=!openTerms[k]; render(); break;
+    case 'answer':
+      var v=b.getAttribute('data-v');
+      S.answers[iid]=v;
+      if(isFlag(v)) getQs(iid);
+      saveNow(); render();
+      var card=document.getElementById('it-'+iid);
+      try{
+        if(isFlag(v)){
+          var p=card && card.querySelector('.qpanel'); if(p) p.scrollIntoView({block:'nearest', behavior:'smooth'});
+        } else {
+          var its=STAGE[S.cur].items, ix=-1, nx=null;
+          for(var i=0;i<its.length;i++){ if(its[i].id===iid) ix=i; else if(ix>=0 && itemOn(its[i].id) && !S.answers[its[i].id]){ nx=its[i].id; break; } }
+          var ne=nx && document.getElementById('it-'+nx);
+          if(ne) ne.scrollIntoView({block:'center', behavior:'smooth'});
+        }
+      }catch(err){}
+      break;
+    case 'addq': getQs(iid).push({t:'', use:true}); saveNow(); render();
+      var tas=document.querySelectorAll('#it-'+iid+' textarea[data-act=qtext]'); if(tas.length) tas[tas.length-1].focus(); break;
+    case 'delq': getQs(iid).splice(+b.getAttribute('data-q'),1); saveNow(); render(); break;
+    case 'resetq': getQs(iid)[0].t=null; saveNow(); render(); break;
+    case 'prev': prev(); break;
+    case 'next': nextChecked(); break;
+    case 'skip': skipStage(); break;
+    case 'download': doDownload(); break;
+    case 'copy': doCopy(); break;
+    case 'share': doShare(); break;
+    case 'restart':
+      confirmBox('入力した内容をすべて消して、最初からやり直しますか？（元に戻せません）','消してやり直す',function(){
+        try{ window.localStorage.removeItem(KEY); }catch(err){}
+        S=blank(); openTerms={}; render({top:true}); toast('最初からやり直します');
+      });
+      break;
+  }
+});
+document.addEventListener('change', function(e){
+  var t=e.target, act=t.getAttribute && t.getAttribute('data-act'); if(!act) return;
+  if(act==='method' || act==='target'){
+    var arr = act==='method' ? S.methods : S.targets, v=t.value;
+    var i=arr.indexOf(v); if(t.checked && i<0) arr.push(v); if(!t.checked && i>=0) arr.splice(i,1);
+    var order=(act==='method'?METHODS:TARGETS).map(function(m){return m.k;});
+    arr.sort(function(a,b){return order.indexOf(a)-order.indexOf(b);});
+    saveNow(); render();
+    var again=document.querySelector('input[data-act="'+act+'"][value="'+v+'"]'); if(again) again.focus();
+  } else if(act==='use'){
+    var q=getQs(t.getAttribute('data-i'))[+t.getAttribute('data-q')]; q.use=t.checked;
+    var row=t.closest('.qrow'); if(row) row.classList.toggle('used', t.checked);
+    saveNow();
+  }
+});
+document.addEventListener('input', function(e){
+  var t=e.target;
+  var act=t.getAttribute && t.getAttribute('data-act'); if(!act) return;
+  var id=t.getAttribute('data-i');
+  if(act==='qtext'){ getQs(id)[+t.getAttribute('data-q')].t=t.value; saveSoon(); }
+  else if(act==='memo'){ S.memo[id]=t.value; saveSoon(); }
+  else if(act==='good' || act==='ask'){
+    S[act]=t.value; saveSoon();
+    var ex=document.getElementById('exporttext'); if(ex) ex.value=buildText();
+  }
+});
+window.addEventListener('resize', function(){ clearTimeout(window.__rz); window.__rz=setTimeout(centerMap,150); });
+
+render();
+})();
+</script>
+</body>
+</html>
